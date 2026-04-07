@@ -1,8 +1,7 @@
 # Modulation and Demodulation of Audio Signal
 
-> **EEE 212 — Numerical Technique Laboratory | Project 06**  
-> Bangladesh University of Engineering and Technology (BUET)  
-> Department of Electrical and Electronic Engineering  
+> **EEE 212 — Numerical Technique Laboratory | [Project 06](https://anikbiswas730.github.io/audio-modulation-demodulation/)** > Bangladesh University of Engineering and Technology (BUET)  
+> Department of Electrical and Electronic Engineering
 
 ---
 

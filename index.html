@@ -1,1 +1,1405 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Modulation & Demodulation — EEE 212</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --panel: #13161e;
+    --panel2: #181c26;
+    --border: #252a38;
+    --accent: #c0392b;
+    --accent2: #e74c3c;
+    --accent-glow: rgba(192,57,43,0.18);
+    --blue: #2980b9;
+    --blue2: #3498db;
+    --green: #27ae60;
+    --green2: #2ecc71;
+    --yellow: #f39c12;
+    --text: #e8ecf4;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ───── HEADER ───── */
+  header {
+    background: linear-gradient(135deg, #8b0000 0%, var(--accent) 60%, #a93226 100%);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 54px;
+    box-shadow: 0 2px 20px rgba(192,57,43,0.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .hdr-left { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.85); }
+  header .hdr-center { font-family: var(--sans); font-size: 14px; font-weight: 600; letter-spacing: 0.04em; color: #fff; }
+  header .hdr-right { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.85); }
+
+  /* ───── LAYOUT ───── */
+  .app-wrap {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 0;
+    height: calc(100vh - 54px);
+  }
+
+  /* ───── CONTROL PANEL ───── */
+  .controls {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 0 0 24px 0;
+  }
+  .controls::-webkit-scrollbar { width: 4px; }
+  .controls::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ───── BUTTONS ───── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .btn:hover { border-color: var(--accent); color: #fff; background: rgba(192,57,43,0.12); }
+  .btn:active { transform: scale(0.97); }
+  .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 14px var(--accent-glow); }
+  .btn.success { background: rgba(39,174,96,0.15); border-color: var(--green); color: var(--green2); }
+  .btn.play-btn { padding: 8px 12px; border-radius: 50%; width: 36px; height: 36px; padding: 0; }
+  .btn.primary { background: var(--accent); border-color: var(--accent2); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); box-shadow: 0 0 18px var(--accent-glow); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn:disabled:hover { border-color: var(--border); background: var(--panel2); color: var(--text); box-shadow: none; }
+
+  /* ───── INPUT ───── */
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  label { font-size: 11px; color: var(--text2); font-family: var(--mono); white-space: nowrap; }
+
+  input[type=number], input[type=range], select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type=number] { width: 72px; text-align: center; }
+  input[type=number]:focus, select:focus { border-color: var(--accent); }
+  select { padding: 6px 8px; cursor: pointer; }
+  select option { background: var(--panel); }
+
+  /* ───── RANGE / KNOB ───── */
+  .knob-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .knob {
+    position: relative;
+    width: 72px;
+    height: 72px;
+  }
+  .knob canvas { cursor: grab; }
+  .knob canvas:active { cursor: grabbing; }
+  .knob-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    text-align: center;
+  }
+  .knob-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ───── SNR SECTION ───── */
+  .noise-grid { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+  .snr-bar-wrap { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; position: relative; }
+  .snr-bar { height: 100%; border-radius: 3px; transition: width 0.2s, background 0.3s; }
+
+  /* ───── STATUS LED ───── */
+  .led {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text3);
+    display: inline-block;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    box-shadow: none;
+  }
+  .led.on-green { background: var(--green2); box-shadow: 0 0 6px var(--green2); }
+  .led.on-blue { background: var(--blue2); box-shadow: 0 0 6px var(--blue2); }
+  .led.on-red { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .led.on-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  /* ───── STAGE PIPELINE ───── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 20px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .pipe-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .pipe-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--text3);
+    background: transparent;
+    transition: all 0.3s;
+  }
+  .pipe-step.done .pipe-dot { background: var(--green2); border-color: var(--green2); box-shadow: 0 0 6px var(--green2); }
+  .pipe-step.active .pipe-dot { background: var(--accent2); border-color: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 1s infinite; }
+  .pipe-label { font-family: var(--mono); font-size: 8px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .pipe-line { width: 28px; height: 1px; background: var(--border); flex-shrink: 0; }
+  .pipe-step.done + .pipe-line { background: var(--green2); }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 6px var(--accent2); }
+    50% { box-shadow: 0 0 14px var(--accent2); }
+  }
+
+  /* ───── PLOTS AREA ───── */
+  .plots-area {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .plot-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    background: var(--panel);
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text2); }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+  .plots-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .plot-cell {
+    background: var(--panel);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .plot-cell canvas { flex: 1; width: 100%; }
+  .plot-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    padding: 5px 10px 2px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .plot-title .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ───── AUDIO PLAYER ───── */
+  .audio-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .audio-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+  .mini-waveform { flex: 1; height: 28px; border-radius: 4px; overflow: hidden; }
+  .playback-time { font-family: var(--mono); font-size: 10px; color: var(--text2); }
+
+  /* ───── STATUS BAR ───── */
+  .statusbar {
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    padding: 5px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+  .statusbar span { display: flex; align-items: center; gap: 5px; }
+  .status-msg { color: var(--green2); margin-left: auto; }
+
+  /* ───── TOAST ───── */
+  .toast-wrap { position: fixed; bottom: 28px; right: 28px; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
+  .toast {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    padding: 10px 16px;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    max-width: 280px;
+    animation: slideIn 0.25s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.success { border-left-color: var(--green2); }
+  .toast.info { border-left-color: var(--blue2); }
+  @keyframes slideIn { from { transform: translateX(30px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+  /* ───── RECORDING ANIMATION ───── */
+  @keyframes recPulse {
+    0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+  .recording .led { animation: recPulse 0.8s infinite; }
+
+  /* ───── MODULATION TYPE PILLS ───── */
+  .mod-pills { display: flex; gap: 6px; }
+  .pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.06em;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--text); }
+  .pill.active-am { background: rgba(192,57,43,0.2); border-color: var(--accent); color: var(--accent2); box-shadow: 0 0 10px rgba(192,57,43,0.15); }
+  .pill.active-fm { background: rgba(41,128,185,0.2); border-color: var(--blue); color: var(--blue2); box-shadow: 0 0 10px rgba(41,128,185,0.15); }
+
+  /* ───── SPECTRUM BADGE ───── */
+  .freq-badge {
+    font-family: var(--mono);
+    font-size: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(192,57,43,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(192,57,43,0.3);
+  }
+
+  .params-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .param-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .param-box .p-label { font-family: var(--mono); font-size: 8px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .param-box .p-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text); }
+  .param-box .p-unit { font-family: var(--mono); font-size: 9px; color: var(--text2); }
+
+  /* Responsive tweak */
+  @media (max-width: 900px) {
+    .app-wrap { grid-template-columns: 1fr; height: auto; }
+    .plots-grid { grid-template-rows: repeat(4, 120px); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">BUET — EEE 212 Numerical Technique Laboratory</div>
+  <div class="hdr-center">Modulation &amp; Demodulation of Audio Signal</div>
+  <div class="hdr-right">Project 06</div>
+</header>
+
+<div style="display:flex;flex-direction:column;height:calc(100vh - 54px)">
+
+  <!-- Pipeline Status Bar -->
+  <div class="pipeline" id="pipeline">
+    <div class="pipe-step" id="ps-input"><div class="pipe-dot"></div><div class="pipe-label">Input</div></div>
+    <div class="pipe-line" id="pl-1"></div>
+    <div class="pipe-step" id="ps-mod"><div class="pipe-dot"></div><div class="pipe-label">Modulate</div></div>
+    <div class="pipe-line" id="pl-2"></div>
+    <div class="pipe-step" id="ps-noise"><div class="pipe-dot"></div><div class="pipe-label">Noise</div></div>
+    <div class="pipe-line" id="pl-3"></div>
+    <div class="pipe-step" id="ps-demod"><div class="pipe-dot"></div><div class="pipe-label">Demod</div></div>
+  </div>
+
+  <div class="app-wrap" style="flex:1;min-height:0">
+
+    <!-- ══ CONTROL PANEL ══ -->
+    <div class="controls">
+
+      <!-- 1. INPUT AUDIO -->
+      <div class="section">
+        <div class="section-title">① Input Audio Signal</div>
+        <div class="row">
+          <label>Recording time (s)</label>
+          <input type="number" id="recDuration" value="3" min="1" max="30">
+        </div>
+        <div class="row">
+          <button class="btn" id="btnRecord" onclick="startRecord()">
+            <span>🎙</span> Record
+          </button>
+          <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">or</span>
+          <button class="btn" id="btnBrowse" onclick="browseFile()">
+            <span>📂</span> Browse
+          </button>
+          <button class="btn play-btn" id="btnPlayInput" onclick="playStage('input')" disabled title="Play Input">▶</button>
+        </div>
+        <div class="audio-row" id="inputAudioRow" style="display:none">
+          <span class="audio-label">Input</span>
+          <canvas class="mini-waveform" id="waveInput" height="28"></canvas>
+          <span class="playback-time" id="timeInput">0:00</span>
+          <span class="led" id="ledInput"></span>
+        </div>
+        <input type="file" id="fileInput" accept="audio/*" style="display:none" onchange="loadFile(event)">
+      </div>
+
+      <!-- 2. MODULATION TYPE -->
+      <div class="section">
+        <div class="section-title">② Type of Modulation</div>
+        <div class="row">
+          <div class="mod-pills">
+            <div class="pill active-am" id="pillAM" onclick="setModType('AM')">AM</div>
+            <div class="pill" id="pillFM" onclick="setModType('FM')">FM</div>
+          </div>
+        </div>
+        <div id="amParams">
+          <div class="row" style="margin-top:4px">
+            <label>Carrier amplitude (A<sub>c</sub>)</label>
+            <input type="number" id="carrierAmp" value="10" min="1" max="100">
+          </div>
+        </div>
+        <div style="margin-top:6px">
+          <div class="params-grid">
+            <div class="param-box"><div class="p-label">Fc</div><div class="p-val">4 200 <span class="p-unit">Hz</span></div></div>
+            <div class="param-box"><div class="p-label">Fs</div><div class="p-val">10 000 <span class="p-unit">Hz</span></div></div>
+            <div class="param-box" id="fDevBox"><div class="p-label">fDev</div><div class="p-val">2 000 <span class="p-unit">Hz</span></div></div>
+            <div class="param-box"><div class="p-label">BPF</div><div class="p-val">1–4 <span class="p-unit">kHz</span></div></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btnModulate" onclick="doModulate()" disabled>Modulate</button>
+          <button class="btn play-btn" id="btnPlayMod" onclick="playStage('modulated')" disabled title="Play Modulated">▶</button>
+        </div>
+        <div class="audio-row" id="modAudioRow" style="display:none">
+          <span class="audio-label">Mod</span>
+          <canvas class="mini-waveform" id="waveModulated" height="28"></canvas>
+          <span class="playback-time" id="timeMod">0:00</span>
+          <span class="led" id="ledMod"></span>
+        </div>
+      </div>
+
+      <!-- 3. NOISE -->
+      <div class="section">
+        <div class="section-title">③ Adding Noise (AWGN)</div>
+        <div style="display:flex;gap:16px;align-items:center">
+          <div class="knob-wrap">
+            <div class="knob"><canvas id="knobCanvas" width="72" height="72"></canvas></div>
+            <div class="knob-val" id="knobVal">50</div>
+            <div class="knob-label">SNR dB</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="row" style="margin:0">
+              <label>Noise (SNR dB)</label>
+              <input type="number" id="noiseInput" value="50" min="0" max="100" onchange="syncKnobFromInput()">
+            </div>
+            <div class="snr-bar-wrap">
+              <div class="snr-bar" id="snrBar" style="width:50%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:8px;color:var(--text3)">
+              <span>0 dB (max noise)</span><span>100 dB (clean)</span>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btnAddNoise" onclick="doAddNoise()" disabled>Add Noise</button>
+          <button class="btn play-btn" id="btnPlayNoisy" onclick="playStage('noisy')" disabled title="Play Noisy">▶</button>
+        </div>
+        <div class="audio-row" id="noisyAudioRow" style="display:none">
+          <span class="audio-label">Noisy</span>
+          <canvas class="mini-waveform" id="waveNoisy" height="28"></canvas>
+          <span class="playback-time" id="timeNoisy">0:00</span>
+          <span class="led" id="ledNoisy"></span>
+        </div>
+      </div>
+
+      <!-- 4. DEMODULATION -->
+      <div class="section">
+        <div class="section-title">④ Demodulation</div>
+        <div class="row">
+          <button class="btn primary" id="btnDemod" onclick="doDemodulate()" disabled>Demodulate</button>
+          <button class="btn play-btn" id="btnPlayDemod" onclick="playStage('demodulated')" disabled title="Play Demodulated">▶</button>
+        </div>
+        <div class="audio-row" id="demodAudioRow" style="display:none">
+          <span class="audio-label">Demod</span>
+          <canvas class="mini-waveform" id="waveDemod" height="28"></canvas>
+          <span class="playback-time" id="timeDemod">0:00</span>
+          <span class="led" id="ledDemod"></span>
+        </div>
+      </div>
+
+      <!-- 5. GRAPHS + RESET -->
+      <div class="section">
+        <div class="section-title">⑤ Graphs</div>
+        <div class="row">
+          <button class="btn" onclick="showTab('time')">📈 Time Domain</button>
+          <button class="btn" onclick="showTab('freq')">📡 Frequency Domain</button>
+          <button class="btn" onclick="resetAll()" style="margin-left:auto;border-color:var(--accent);color:var(--accent2)">↺ Reset</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ PLOTS AREA ══ -->
+    <div class="plots-area">
+      <div class="plot-tabs">
+        <button class="tab-btn active" id="tab-time" onclick="showTab('time')">Time Domain</button>
+        <button class="tab-btn" id="tab-freq" onclick="showTab('freq')">Frequency Domain</button>
+      </div>
+
+      <!-- Time Domain Grid -->
+      <div class="plots-grid" id="grid-time">
+        <div class="plot-cell">
+          <div class="plot-title"><div class="dot" style="background:#3498db"></div>Input Signal — Time Domain</div>
+          <canvas id="c-input-t"></canvas>
+        </div>
+        <div class="plot-cell" style="display:none" id="freq-input-cell">
+          <div class="plot-title"><div class="dot" style="background:#3498db"></div>Input Signal — Frequency Domain <span class="freq-badge">FFT</span></div>
+          <canvas id="c-input-f"></canvas>
+        </div>
+        <div class="plot-cell">
+          <div class="plot-title"><div class="dot" style="background:#e67e22"></div>Modulated Signal — Time Domain</div>
+          <canvas id="c-mod-t"></canvas>
+        </div>
+        <div class="plot-cell" style="display:none" id="freq-mod-cell">
+          <div class="plot-title"><div class="dot" style="background:#e67e22"></div>Modulated Signal — Frequency Domain <span class="freq-badge">FFT</span></div>
+          <canvas id="c-mod-f"></canvas>
+        </div>
+        <div class="plot-cell">
+          <div class="plot-title"><div class="dot" style="background:#e74c3c"></div>Noisy Signal — Time Domain</div>
+          <canvas id="c-noisy-t"></canvas>
+        </div>
+        <div class="plot-cell" style="display:none" id="freq-noisy-cell">
+          <div class="plot-title"><div class="dot" style="background:#e74c3c"></div>Noisy Signal — Frequency Domain <span class="freq-badge">FFT</span></div>
+          <canvas id="c-noisy-f"></canvas>
+        </div>
+        <div class="plot-cell">
+          <div class="plot-title"><div class="dot" style="background:#27ae60"></div>Demodulated Signal — Time Domain</div>
+          <canvas id="c-demod-t"></canvas>
+        </div>
+        <div class="plot-cell" style="display:none" id="freq-demod-cell">
+          <div class="plot-title"><div class="dot" style="background:#27ae60"></div>Demodulated Signal — Frequency Domain <span class="freq-badge">FFT</span></div>
+          <canvas id="c-demod-f"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status Bar -->
+  <div class="statusbar">
+    <span><span class="led" id="ledMain"></span> <span id="statusMain">Ready</span></span>
+    <span>Fs = 10 000 Hz</span>
+    <span>Fc = 4 200 Hz</span>
+    <span id="modTypeStatus">Mode: AM</span>
+    <span class="status-msg" id="statusMsg"></span>
+  </div>
+
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const S = {
+  Fs: 10000,
+  Fc: 4200,
+  A: 10,
+  fDev: 2000,
+  modType: 'AM',   // 'AM' | 'FM'
+  snr: 50,
+  x: null,           // Float32Array input
+  xMod: null,        // modulated
+  xNoisy: null,      // noisy
+  xDemod: null,      // demodulated
+  audioCtx: null,
+  sourceNode: null,
+  recBuf: null,
+  stages: { input: false, modulated: false, noisy: false, demodulated: false }
+};
+
+// ═══════════════════════════════════════════════════
+//  AUDIO CONTEXT
+// ═══════════════════════════════════════════════════
+function getAudioCtx() {
+  if (!S.audioCtx) S.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: S.Fs });
+  return S.audioCtx;
+}
+
+// ═══════════════════════════════════════════════════
+//  RECORD
+// ═══════════════════════════════════════════════════
+async function startRecord() {
+  const dur = parseInt(document.getElementById('recDuration').value) || 3;
+  const btn = document.getElementById('btnRecord');
+  btn.classList.add('active');
+  btn.innerHTML = '<span class="led on-red recording"></span> Recording…';
+  toast('🎙 Recording for ' + dur + 's…', 'info');
+  setStatus('Recording microphone…', true);
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = getAudioCtx();
+    const src = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const chunks = [];
+
+    proc.onaudioprocess = e => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    src.connect(proc);
+    proc.connect(ctx.destination);
+
+    setTimeout(() => {
+      proc.disconnect(); src.disconnect();
+      stream.getTracks().forEach(t => t.stop());
+      // merge
+      const total = chunks.reduce((a, b) => a + b.length, 0);
+      const out = new Float32Array(total);
+      let offset = 0;
+      chunks.forEach(c => { out.set(c, offset); offset += c.length; });
+      S.x = out;
+      S.stages.input = true;
+      onInputReady();
+      toast('✅ Recorded ' + dur + 's of audio', 'success');
+      btn.classList.remove('active');
+      btn.innerHTML = '<span>🎙</span> Record';
+      setStatus('Input ready', false);
+    }, dur * 1000);
+  } catch(e) {
+    // Mic not available — generate a demo tone instead
+    btn.classList.remove('active');
+    btn.innerHTML = '<span>🎙</span> Record';
+    generateDemoSignal();
+    toast('🎵 No mic found — demo signal loaded', 'info');
+    setStatus('Demo signal loaded', false);
+  }
+}
+
+function generateDemoSignal() {
+  const dur = parseInt(document.getElementById('recDuration').value) || 3;
+  const N = Math.round(S.Fs * dur);
+  const sig = new Float32Array(N);
+  // Composite audio: 440 Hz + 880 Hz + 1320 Hz + some harmonics (voice-like)
+  for (let i = 0; i < N; i++) {
+    const t = i / S.Fs;
+    sig[i] = 0.4 * Math.sin(2 * Math.PI * 440 * t)
+           + 0.25 * Math.sin(2 * Math.PI * 880 * t)
+           + 0.15 * Math.sin(2 * Math.PI * 1320 * t)
+           + 0.1  * Math.sin(2 * Math.PI * 220 * t)
+           + 0.05 * Math.sin(2 * Math.PI * 660 * t + 0.3)
+           + 0.03 * (Math.random() - 0.5); // tiny noise floor
+  }
+  // Normalize
+  const mx = Math.max(...sig.map(Math.abs));
+  for (let i = 0; i < N; i++) sig[i] /= mx * 1.1;
+  S.x = sig;
+  S.stages.input = true;
+  onInputReady();
+}
+
+function browseFile() {
+  document.getElementById('fileInput').click();
+}
+
+async function loadFile(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  toast('📂 Loading: ' + file.name, 'info');
+  setStatus('Decoding audio…', true);
+  const buf = await file.arrayBuffer();
+  const ctx = getAudioCtx();
+  ctx.decodeAudioData(buf, decoded => {
+    // Resample to Fs if needed (simple decimation/upsampling via Web Audio)
+    let ch = decoded.getChannelData(0);
+    // If stereo, mix down
+    if (decoded.numberOfChannels > 1) {
+      const ch2 = decoded.getChannelData(1);
+      ch = ch.map((v, i) => (v + ch2[i]) * 0.5);
+    }
+    // Resample: stretch or compress sample count
+    const targetN = Math.round(ch.length * (S.Fs / decoded.sampleRate));
+    const resampled = new Float32Array(targetN);
+    for (let i = 0; i < targetN; i++) {
+      const srcIdx = i * (ch.length / targetN);
+      const lo = Math.floor(srcIdx);
+      const hi = Math.min(lo + 1, ch.length - 1);
+      const frac = srcIdx - lo;
+      resampled[i] = ch[lo] * (1 - frac) + ch[hi] * frac;
+    }
+    S.x = resampled;
+    S.stages.input = true;
+    onInputReady();
+    toast('✅ Loaded: ' + file.name, 'success');
+    setStatus('File loaded', false);
+  }, () => {
+    toast('❌ Could not decode audio file', 'error');
+    setStatus('Error decoding file', false);
+  });
+}
+
+function onInputReady() {
+  drawWave(S.x, 'waveInput', '#3498db');
+  drawPlot(S.x, 'c-input-t', '#3498db', 'Time (s)', 'Amplitude');
+  drawSpectrum(S.x, 'c-input-f', '#3498db');
+  updateDuration('timeInput', S.x.length / S.Fs);
+  document.getElementById('inputAudioRow').style.display = 'flex';
+  document.getElementById('btnPlayInput').disabled = false;
+  document.getElementById('btnModulate').disabled = false;
+  setPipeStage('input', 'done');
+  document.getElementById('ledInput').className = 'led on-green';
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULATION TYPE
+// ═══════════════════════════════════════════════════
+function setModType(type) {
+  S.modType = type;
+  document.getElementById('pillAM').className = 'pill' + (type === 'AM' ? ' active-am' : '');
+  document.getElementById('pillFM').className = 'pill' + (type === 'FM' ? ' active-fm' : '');
+  document.getElementById('amParams').style.display = type === 'AM' ? '' : 'none';
+  document.getElementById('fDevBox').style.opacity = type === 'FM' ? '1' : '0.4';
+  document.getElementById('modTypeStatus').textContent = 'Mode: ' + type;
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULATION
+// ═══════════════════════════════════════════════════
+function doModulate() {
+  if (!S.x) return;
+  S.A = parseFloat(document.getElementById('carrierAmp').value) || 10;
+  setPipeStage('mod', 'active');
+  setStatus('Modulating…', true);
+  toast('📻 Applying ' + S.modType + ' modulation…', 'info');
+
+  setTimeout(() => {
+    const N = S.x.length;
+    const out = new Float32Array(N);
+    const Fc = S.Fc, Fs = S.Fs;
+
+    if (S.modType === 'AM') {
+      // Band-pass filter 1–4 kHz (simple FIR approximation via windowed-sinc)
+      const bpf = makeBPF(1000, 4000, Fs, 63);
+      const filtered = convolve(S.x, bpf);
+      const carrier = makeCarrier(N, Fc, Fs);
+      for (let i = 0; i < N; i++) {
+        out[i] = (S.A + filtered[i]) * carrier[i];
+      }
+    } else {
+      // FM: integrate message, modulate frequency
+      let integral = 0;
+      const fDev = S.fDev;
+      for (let i = 0; i < N; i++) {
+        integral += S.x[i] / Fs;
+        out[i] = Math.cos(2 * Math.PI * Fc * (i / Fs) + 2 * Math.PI * fDev * integral);
+      }
+    }
+
+    S.xMod = out;
+    S.stages.modulated = true;
+    drawWave(out, 'waveModulated', '#e67e22');
+    drawPlot(out, 'c-mod-t', '#e67e22', 'Time (s)', 'Amplitude');
+    drawSpectrum(out, 'c-mod-f', '#e67e22');
+    updateDuration('timeMod', out.length / Fs);
+    document.getElementById('modAudioRow').style.display = 'flex';
+    document.getElementById('btnPlayMod').disabled = false;
+    document.getElementById('btnAddNoise').disabled = false;
+    document.getElementById('ledMod').className = 'led on-yellow';
+    setPipeStage('mod', 'done');
+    setStatus('Modulation complete', false);
+    toast('✅ ' + S.modType + ' modulation applied', 'success');
+  }, 80);
+}
+
+// ═══════════════════════════════════════════════════
+//  NOISE
+// ═══════════════════════════════════════════════════
+function doAddNoise() {
+  if (!S.xMod) return;
+  const snr = parseFloat(document.getElementById('noiseInput').value);
+  S.snr = snr;
+  setPipeStage('noise', 'active');
+  setStatus('Adding AWGN…', true);
+  toast('🔊 Adding AWGN at SNR = ' + snr + ' dB', 'info');
+
+  setTimeout(() => {
+    // SNR-based noise: sigma = signal_rms / 10^(snr/20)
+    const sig = S.xMod;
+    const rms = Math.sqrt(sig.reduce((a, b) => a + b * b, 0) / sig.length);
+    const sigma = rms / Math.pow(10, snr / 20);
+    const noisy = new Float32Array(sig.length);
+    for (let i = 0; i < sig.length; i++) {
+      noisy[i] = sig[i] + sigma * gaussRand();
+    }
+    S.xNoisy = noisy;
+    S.stages.noisy = true;
+    drawWave(noisy, 'waveNoisy', '#e74c3c');
+    drawPlot(noisy, 'c-noisy-t', '#e74c3c', 'Time (s)', 'Amplitude');
+    drawSpectrum(noisy, 'c-noisy-f', '#e74c3c');
+    updateDuration('timeNoisy', noisy.length / S.Fs);
+    document.getElementById('noisyAudioRow').style.display = 'flex';
+    document.getElementById('btnPlayNoisy').disabled = false;
+    document.getElementById('btnDemod').disabled = false;
+    document.getElementById('ledNoisy').className = 'led on-red';
+    setPipeStage('noise', 'done');
+    setStatus('Noise added (SNR = ' + snr + ' dB)', false);
+    toast('✅ AWGN added (σ = ' + sigma.toFixed(4) + ')', 'success');
+  }, 80);
+}
+
+function gaussRand() {
+  // Box-Muller
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// ═══════════════════════════════════════════════════
+//  DEMODULATION
+// ═══════════════════════════════════════════════════
+function doDemodulate() {
+  if (!S.xNoisy) return;
+  setPipeStage('demod', 'active');
+  setStatus('Demodulating…', true);
+  toast('🔁 Running ' + S.modType + ' demodulator…', 'info');
+
+  setTimeout(() => {
+    const N = S.xNoisy.length;
+    const out = new Float32Array(N);
+    const Fs = S.Fs, Fc = S.Fc;
+
+    if (S.modType === 'AM') {
+      // BPF 20 Hz — Fc/Fs around carrier
+      const bpf = makeBPF(20, Fc, Fs, 63);
+      const filtered = convolve(S.xNoisy, bpf);
+      // Multiply by carrier replica
+      const carrier = makeCarrier(N, Fc, Fs);
+      const mixed = new Float32Array(N);
+      for (let i = 0; i < N; i++) mixed[i] = 2 * filtered[i] * carrier[i];
+      // Low-pass at Fc/(2*Fs)
+      const lpf = makeLPF(Fc / (2 * Fs) * 2, Fs, 63);
+      const demod = convolve(mixed, lpf);
+      for (let i = 0; i < N; i++) out[i] = demod[i];
+    } else {
+      // FM discriminator: d/dt phase via arctangent difference
+      let prevI = 0, prevQ = 0;
+      // Get analytic-ish signal via Hilbert transform approximation
+      // Simple approach: differentiate, divide by instantaneous amplitude
+      for (let i = 1; i < N; i++) {
+        const diff = S.xNoisy[i] - S.xNoisy[i - 1];
+        out[i] = diff * Fs / (2 * Math.PI * S.fDev);
+      }
+      // LPF the output
+      const lpf = makeLPF(0.5, Fs, 31);
+      const lp = convolve(out, lpf);
+      for (let i = 0; i < N; i++) out[i] = lp[i];
+    }
+
+    // Normalize
+    const mx = Math.max(...out.map(Math.abs)) || 1;
+    for (let i = 0; i < N; i++) out[i] /= mx * 1.1;
+
+    S.xDemod = out;
+    S.stages.demodulated = true;
+    drawWave(out, 'waveDemod', '#27ae60');
+    drawPlot(out, 'c-demod-t', '#27ae60', 'Time (s)', 'Amplitude');
+    drawSpectrum(out, 'c-demod-f', '#27ae60');
+    updateDuration('timeDemod', out.length / S.Fs);
+    document.getElementById('demodAudioRow').style.display = 'flex';
+    document.getElementById('btnPlayDemod').disabled = false;
+    document.getElementById('ledDemod').className = 'led on-green';
+    setPipeStage('demod', 'done');
+    document.getElementById('ledMain').className = 'led on-green';
+    setStatus('Pipeline complete ✓', false);
+    toast('✅ Demodulation complete!', 'success');
+  }, 100);
+}
+
+// ═══════════════════════════════════════════════════
+//  PLAYBACK
+// ═══════════════════════════════════════════════════
+function playStage(stage) {
+  const map = { input: S.x, modulated: S.xMod, noisy: S.xNoisy, demodulated: S.xDemod };
+  const sig = map[stage];
+  if (!sig) return;
+
+  if (S.sourceNode) { try { S.sourceNode.stop(); } catch(e){} }
+  const ctx = getAudioCtx();
+  const buf = ctx.createBuffer(1, sig.length, S.Fs);
+  buf.copyToChannel(sig, 0);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start();
+  S.sourceNode = src;
+  toast('▶ Playing ' + stage + ' signal…', 'info');
+
+  const led = { input:'ledInput', modulated:'ledMod', noisy:'ledNoisy', demodulated:'ledDemod' }[stage];
+  const el = document.getElementById(led);
+  el.className = 'led on-blue';
+  src.onended = () => { el.className = 'led on-green'; };
+}
+
+// ═══════════════════════════════════════════════════
+//  DSP UTILITIES
+// ═══════════════════════════════════════════════════
+function makeCarrier(N, Fc, Fs) {
+  const c = new Float32Array(N);
+  for (let i = 0; i < N; i++) c[i] = Math.cos(2 * Math.PI * Fc * i / Fs);
+  return c;
+}
+
+function makeLPF(cutoff, Fs, M) {
+  // Windowed-sinc LPF, M taps (odd)
+  const h = new Float32Array(M);
+  const half = Math.floor(M / 2);
+  for (let i = 0; i < M; i++) {
+    const n = i - half;
+    if (n === 0) h[i] = 2 * cutoff;
+    else h[i] = Math.sin(2 * Math.PI * cutoff * n) / (Math.PI * n);
+    // Hamming window
+    h[i] *= 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (M - 1));
+  }
+  return h;
+}
+
+function makeBPF(fLow, fHigh, Fs, M) {
+  // BPF = HPF - LPF via windowed sinc
+  const h = new Float32Array(M);
+  const half = Math.floor(M / 2);
+  const wl = fLow / Fs;
+  const wh = fHigh / Fs;
+  for (let i = 0; i < M; i++) {
+    const n = i - half;
+    let hh, hl;
+    if (n === 0) { hh = 2 * wh; hl = 2 * wl; }
+    else {
+      hh = Math.sin(2 * Math.PI * wh * n) / (Math.PI * n);
+      hl = Math.sin(2 * Math.PI * wl * n) / (Math.PI * n);
+    }
+    const win = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (M - 1));
+    h[i] = (hh - hl) * win;
+  }
+  return h;
+}
+
+function convolve(x, h) {
+  const N = x.length, M = h.length;
+  const out = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let s = 0;
+    for (let j = 0; j < M && j <= i; j++) s += h[j] * x[i - j];
+    out[i] = s;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════
+//  FFT (Cooley-Tukey, real input)
+// ═══════════════════════════════════════════════════
+function fft(re, im) {
+  const N = re.length;
+  for (let i = 1, j = 0; i < N; i++) {
+    let bit = N >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i],re[j]] = [re[j],re[i]]; [im[i],im[j]] = [im[j],im[i]]; }
+  }
+  for (let len = 2; len <= N; len <<= 1) {
+    const ang = -2 * Math.PI / len;
+    const wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < N; i += len) {
+      let cr = 1, ci = 0;
+      for (let j = 0; j < len >> 1; j++) {
+        const ur = re[i+j], ui = im[i+j];
+        const vr = re[i+j+len/2]*cr - im[i+j+len/2]*ci;
+        const vi = re[i+j+len/2]*ci + im[i+j+len/2]*cr;
+        re[i+j] = ur+vr; im[i+j] = ui+vi;
+        re[i+j+len/2] = ur-vr; im[i+j+len/2] = ui-vi;
+        const nc = cr*wr - ci*wi;
+        ci = cr*wi + ci*wr; cr = nc;
+      }
+    }
+  }
+}
+
+function spectrum(x) {
+  // Next power of 2, cap at 4096 for speed
+  let N = 1;
+  const maxN = Math.min(x.length, 4096);
+  while (N < maxN) N <<= 1;
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let i = 0; i < N; i++) re[i] = i < x.length ? x[i] : 0;
+  fft(re, im);
+  const mag = new Float32Array(N >> 1);
+  for (let i = 0; i < N >> 1; i++) mag[i] = Math.sqrt(re[i]*re[i] + im[i]*im[i]) / N;
+  return mag;
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════════════════
+const colors = {
+  grid: 'rgba(255,255,255,0.04)',
+  axis: 'rgba(255,255,255,0.12)',
+  text: '#4a5568'
+};
+
+function drawPlot(sig, id, color, xlabel, ylabel) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.width = parent.offsetWidth || 300;
+  canvas.height = parent.offsetHeight - 24 || 80;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0d0f14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(0, H*i/4); ctx.lineTo(W, H*i/4); ctx.stroke();
+  }
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath(); ctx.moveTo(W*i/6, 0); ctx.lineTo(W*i/6, H); ctx.stroke();
+  }
+
+  // Zero line
+  ctx.strokeStyle = colors.axis;
+  ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+
+  // Signal — downsample for performance
+  const step = Math.max(1, Math.floor(sig.length / W));
+  let mx = 0;
+  for (let i = 0; i < sig.length; i++) if (Math.abs(sig[i]) > mx) mx = Math.abs(sig[i]);
+  if (mx === 0) mx = 1;
+
+  // Glow
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let px = 0; px < W; px++) {
+    const idx = Math.min(Math.floor(px * step), sig.length - 1);
+    const y = H / 2 - (sig[idx] / mx) * (H / 2 - 6);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Axis labels
+  ctx.fillStyle = colors.text;
+  ctx.font = '8px JetBrains Mono';
+  ctx.fillText(mx.toFixed(2), 2, 10);
+  ctx.fillText((-mx).toFixed(2), 2, H - 3);
+  ctx.fillText('0  ' + (sig.length / S.Fs).toFixed(1) + 's', W - 40, H - 3);
+}
+
+function drawSpectrum(sig, id, color) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.width = parent.offsetWidth || 300;
+  canvas.height = parent.offsetHeight - 24 || 80;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0f14';
+  ctx.fillRect(0, 0, W, H);
+
+  const mag = spectrum(sig);
+  const N = mag.length;
+  let mx = 0;
+  for (let i = 0; i < N; i++) if (mag[i] > mx) mx = mag[i];
+  if (mx === 0) return;
+
+  // Grid
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(0, H*i/4); ctx.lineTo(W, H*i/4); ctx.stroke();
+  }
+
+  // Gradient fill under spectrum
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, color + 'cc');
+  grad.addColorStop(1, color + '11');
+
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let px = 0; px < W; px++) {
+    const idx = Math.floor(px * N / W);
+    const y = H - (mag[idx] / mx) * (H - 6);
+    ctx.lineTo(px, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Outline
+  ctx.shadowBlur = 4; ctx.shadowColor = color;
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let px = 0; px < W; px++) {
+    const idx = Math.floor(px * N / W);
+    const y = H - (mag[idx] / mx) * (H - 6);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Freq labels
+  ctx.fillStyle = colors.text;
+  ctx.font = '8px JetBrains Mono';
+  ctx.fillText('0', 2, H - 3);
+  ctx.fillText((S.Fs / 2000).toFixed(0) + ' kHz', W - 30, H - 3);
+  // Mark Fc
+  const fcX = Math.floor(S.Fc / (S.Fs / 2) * W);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(fcX, 0); ctx.lineTo(fcX, H); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('Fc', fcX + 2, 10);
+}
+
+function drawWave(sig, id, color) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 120;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0f14';
+  ctx.fillRect(0, 0, W, H);
+
+  let mx = 0;
+  for (let i = 0; i < sig.length; i++) if (Math.abs(sig[i]) > mx) mx = Math.abs(sig[i]);
+  if (mx === 0) mx = 1;
+
+  const step = Math.max(1, Math.floor(sig.length / W));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let px = 0; px < W; px++) {
+    const idx = Math.min(px * step, sig.length - 1);
+    const y = H / 2 - (sig[idx] / mx) * (H / 2 - 2);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════
+//  KNOB
+// ═══════════════════════════════════════════════════
+(function setupKnob() {
+  const canvas = document.getElementById('knobCanvas');
+  let dragging = false, startY = 0, startVal = 50;
+
+  function drawKnob(val) {
+    const ctx = canvas.getContext('2d');
+    const W = 72, H = 72, cx = 36, cy = 36, r = 28;
+    ctx.clearRect(0, 0, W, H);
+
+    // Track
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0.75 * Math.PI, 0.25 * Math.PI);
+    ctx.strokeStyle = '#1e2430';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Value arc
+    const angle = 0.75 * Math.PI + (val / 100) * 1.5 * Math.PI;
+    const arcColor = val < 30 ? '#e74c3c' : val < 60 ? '#f39c12' : '#27ae60';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0.75 * Math.PI, angle);
+    ctx.strokeStyle = arcColor;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 8; ctx.shadowColor = arcColor;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Knob body
+    const grad = ctx.createRadialGradient(cx-4, cy-4, 2, cx, cy, 18);
+    grad.addColorStop(0, '#2a2f3e');
+    grad.addColorStop(1, '#181c26');
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = '#252a38';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Pointer
+    const pAngle = 0.75 * Math.PI + (val / 100) * 1.5 * Math.PI - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 6 * Math.cos(pAngle), cy + 6 * Math.sin(pAngle));
+    ctx.lineTo(cx + 16 * Math.cos(pAngle), cy + 16 * Math.sin(pAngle));
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  function updateKnob(val) {
+    val = Math.max(0, Math.min(100, Math.round(val)));
+    S.snr = val;
+    document.getElementById('knobVal').textContent = val;
+    document.getElementById('noiseInput').value = val;
+    updateSNRBar(val);
+    drawKnob(val);
+  }
+
+  canvas.addEventListener('mousedown', e => { dragging = true; startY = e.clientY; startVal = S.snr; });
+  window.addEventListener('mousemove', e => { if (dragging) { updateKnob(startVal + (startY - e.clientY) * 0.8); } });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); updateKnob(S.snr - Math.sign(e.deltaY) * 2); });
+
+  drawKnob(50);
+})();
+
+function syncKnobFromInput() {
+  const v = parseFloat(document.getElementById('noiseInput').value);
+  S.snr = Math.max(0, Math.min(100, v));
+  document.getElementById('knobVal').textContent = S.snr;
+  updateSNRBar(S.snr);
+  // re-draw knob
+  const canvas = document.getElementById('knobCanvas');
+  const ctx = canvas.getContext('2d');
+  const W=72,H=72,cx=36,cy=36,r=28,val=S.snr;
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0.75*Math.PI,0.25*Math.PI); ctx.strokeStyle='#1e2430'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.stroke();
+  const angle=0.75*Math.PI+(val/100)*1.5*Math.PI;
+  const arcColor=val<30?'#e74c3c':val<60?'#f39c12':'#27ae60';
+  ctx.beginPath(); ctx.arc(cx,cy,r,0.75*Math.PI,angle); ctx.strokeStyle=arcColor; ctx.lineWidth=6; ctx.lineCap='round'; ctx.shadowBlur=8; ctx.shadowColor=arcColor; ctx.stroke(); ctx.shadowBlur=0;
+  const grad=ctx.createRadialGradient(cx-4,cy-4,2,cx,cy,18); grad.addColorStop(0,'#2a2f3e'); grad.addColorStop(1,'#181c26');
+  ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); ctx.strokeStyle='#252a38'; ctx.lineWidth=1; ctx.stroke();
+  const pA=0.75*Math.PI+(val/100)*1.5*Math.PI-Math.PI/2;
+  ctx.beginPath(); ctx.moveTo(cx+6*Math.cos(pA),cy+6*Math.sin(pA)); ctx.lineTo(cx+16*Math.cos(pA),cy+16*Math.sin(pA)); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+}
+
+function updateSNRBar(val) {
+  const bar = document.getElementById('snrBar');
+  bar.style.width = val + '%';
+  bar.style.background = val < 30 ? '#e74c3c' : val < 60 ? '#f39c12' : '#27ae60';
+}
+
+// ═══════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════
+function showTab(which) {
+  const timeIds = ['c-input-t','c-mod-t','c-noisy-t','c-demod-t'];
+  const freqIds = ['c-input-f','c-mod-f','c-noisy-f','c-demod-f'];
+  const freqCells = ['freq-input-cell','freq-mod-cell','freq-noisy-cell','freq-demod-cell'];
+
+  document.getElementById('tab-time').className = 'tab-btn' + (which==='time' ? ' active' : '');
+  document.getElementById('tab-freq').className = 'tab-btn' + (which==='freq' ? ' active' : '');
+
+  if (which === 'time') {
+    timeIds.forEach(id => { const c = document.getElementById(id); if(c) c.closest('.plot-cell').style.display = ''; });
+    freqCells.forEach(id => { const c = document.getElementById(id); if(c) c.style.display = 'none'; });
+  } else {
+    timeIds.forEach(id => { const c = document.getElementById(id); if(c) c.closest('.plot-cell').style.display = 'none'; });
+    freqCells.forEach(id => { const c = document.getElementById(id); if(c) c.style.display = ''; });
+    // Redraw frequency plots
+    setTimeout(() => {
+      if (S.x) drawSpectrum(S.x,'c-input-f','#3498db');
+      if (S.xMod) drawSpectrum(S.xMod,'c-mod-f','#e67e22');
+      if (S.xNoisy) drawSpectrum(S.xNoisy,'c-noisy-f','#e74c3c');
+      if (S.xDemod) drawSpectrum(S.xDemod,'c-demod-f','#27ae60');
+    }, 50);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  PIPELINE UI
+// ═══════════════════════════════════════════════════
+function setPipeStage(stage, state) {
+  const map = { input:'ps-input', mod:'ps-mod', noise:'ps-noise', demod:'ps-demod' };
+  const el = document.getElementById(map[stage]);
+  if (!el) return;
+  el.className = 'pipe-step ' + state;
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════
+function updateDuration(id, secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  document.getElementById(id).textContent = m + ':' + String(s).padStart(2, '0');
+}
+
+function setStatus(msg, loading) {
+  document.getElementById('statusMain').textContent = msg;
+  document.getElementById('ledMain').className = 'led ' + (loading ? 'on-yellow' : 'on-green');
+  document.getElementById('statusMsg').textContent = loading ? '⟳ Processing…' : '';
+}
+
+function toast(msg, type = 'info') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity 0.4s'; setTimeout(()=>el.remove(), 400); }, 2800);
+}
+
+function resetAll() {
+  if (S.sourceNode) { try { S.sourceNode.stop(); } catch(e){} }
+  S.x = S.xMod = S.xNoisy = S.xDemod = null;
+  Object.keys(S.stages).forEach(k => S.stages[k] = false);
+  ['btnPlayInput','btnPlayMod','btnPlayNoisy','btnPlayDemod','btnModulate','btnAddNoise','btnDemod'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  ['inputAudioRow','modAudioRow','noisyAudioRow','demodAudioRow'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  ['ledInput','ledMod','ledNoisy','ledDemod','ledMain'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'led';
+  });
+  ['ps-input','ps-mod','ps-noise','ps-demod'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'pipe-step';
+  });
+  ['c-input-t','c-mod-t','c-noisy-t','c-demod-t','c-input-f','c-mod-f','c-noisy-f','c-demod-f'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) { const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.fillStyle='#0d0f14'; ctx.fillRect(0,0,c.width,c.height); }
+  });
+  setStatus('Ready', false);
+  toast('↺ App reset', 'info');
+}
+
+// ═══════════════════════════════════════════════════
+//  RESIZE OBSERVER — redraw on resize
+// ═══════════════════════════════════════════════════
+const ro = new ResizeObserver(() => {
+  if (S.x) drawPlot(S.x,'c-input-t','#3498db');
+  if (S.xMod) drawPlot(S.xMod,'c-mod-t','#e67e22');
+  if (S.xNoisy) drawPlot(S.xNoisy,'c-noisy-t','#e74c3c');
+  if (S.xDemod) drawPlot(S.xDemod,'c-demod-t','#27ae60');
+});
+document.querySelectorAll('.plot-cell').forEach(el => ro.observe(el));
+
+// Init
+updateSNRBar(50);
+setStatus('Ready — load or record audio to begin', false);
+
+// Auto-load demo on start for immediate visual feedback
+setTimeout(() => { generateDemoSignal(); }, 400);
+</script>
+</body>
+</html>

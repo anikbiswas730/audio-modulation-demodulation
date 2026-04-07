@@ -107,7 +107,7 @@ audio-modulation-demodulation/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Requirements
 

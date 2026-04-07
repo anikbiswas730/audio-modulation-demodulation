@@ -1,4 +1,4 @@
-# 🎙️ Modulation and Demodulation of Audio Signal
+# Modulation and Demodulation of Audio Signal
 
 > **EEE 212 — Numerical Technique Laboratory | Project 06**  
 > Bangladesh University of Engineering and Technology (BUET)  
@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 Overview
+##  Overview
 
 This project implements a **complete audio modulation–demodulation pipeline** inside a MATLAB App Designer graphical interface. The application supports both **Amplitude Modulation (AM)** and **Frequency Modulation (FM)**, corrupts the modulated signal with **Additive White Gaussian Noise (AWGN)** at a user-controlled SNR level, then demodulates and recovers the original audio — displaying **time-domain and frequency-domain plots** at every stage of the signal chain.
 
@@ -16,18 +16,18 @@ This project implements a **complete audio modulation–demodulation pipeline** 
 
 | Feature | Description |
 |---|---|
-| 🎤 **Record** | Capture live microphone audio at 10 kHz, 16-bit mono |
-| 📂 **Browse** | Import any `.mp3` audio file |
-| 📻 **AM Modulation** | Double-sideband full-carrier AM with configurable carrier amplitude |
-| 📡 **FM Modulation** | Wideband FM using MATLAB's `fmmod` / `fmdemod` |
-| 🔊 **Noise Addition** | AWGN injection via a 0–100 dB SNR knob |
-| 🔁 **Demodulation** | Envelope detection (AM) or frequency discriminator (FM) |
-| 📊 **Visualisation** | 4×2 subplot figures — time & frequency domain for all four signal stages |
-| ▶️ **Playback** | Listen to the signal at any stage: input, modulated, noisy, demodulated |
+|  **Record** | Capture live microphone audio at 10 kHz, 16-bit mono |
+|  **Browse** | Import any `.mp3` audio file |
+|  **AM Modulation** | Double-sideband full-carrier AM with configurable carrier amplitude |
+|  **FM Modulation** | Wideband FM using MATLAB's `fmmod` / `fmdemod` |
+|  **Noise Addition** | AWGN injection via a 0–100 dB SNR knob |
+|  **Demodulation** | Envelope detection (AM) or frequency discriminator (FM) |
+|  **Visualisation** | 4×2 subplot figures — time & frequency domain for all four signal stages |
+|  **Playback** | Listen to the signal at any stage: input, modulated, noisy, demodulated |
 
 ---
 
-## 🧮 Theory
+##  Theory
 
 ### Amplitude Modulation (AM)
 
@@ -83,7 +83,7 @@ MATLAB's `awgn(signal, SNR)` adds noise calibrated to the specified SNR relative
 
 ---
 
-## 🗂️ Repository Structure
+##  Repository Structure
 
 ```
 audio-modulation-demodulation/
@@ -132,7 +132,7 @@ The app will appear in your MATLAB Apps gallery.
 
 ---
 
-## 🖥️ App User Guide
+##  App User Guide
 
 ### Step 1 — Input Audio
 - Enter a recording duration (seconds) and press **Record**, **or**
@@ -160,7 +160,7 @@ Press **Play** to verify the input signal.
 
 ---
 
-## 📊 Global Variables
+##  Global Variables
 
 | Variable | Default | Description |
 |---|---|---|
@@ -184,7 +184,7 @@ Press **Play** to verify the input signal.
 
 ---
 
-## 📈 Sample Results
+##  Sample Results
 
 | Test | Mode | A_c | SNR | Notes |
 |---|---|---|---|---|
@@ -199,7 +199,7 @@ See the full report in [`docs/EEE212_Project06_Report.pdf`](docs/EEE212_Project0
 
 ---
 
-## 📁 Standalone Scripts
+##  Standalone Scripts
 
 ### `scripts/autocorrelation_demo.m`
 
@@ -219,7 +219,7 @@ Run directly from the MATLAB command window — no toolboxes required.
 
 ---
 
-## 📝 Report
+## Report
 
 The full technical report is available at [`docs/EEE212_Project06_Report.pdf`](docs/EEE212_Project06_Report.pdf). It covers:
 
@@ -232,7 +232,7 @@ The full technical report is available at [`docs/EEE212_Project06_Report.pdf`](d
 
 ---
 
-## 👤 Author
+## Author
 
 | Field | Detail |
 |---|---|
